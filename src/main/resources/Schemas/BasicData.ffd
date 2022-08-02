@@ -1,0 +1,13 @@
+form: COPYBOOK
+segments:
+- id: 'CUST_REQ' 
+  name: Customer creation request
+  values:
+  - { name: 'FIRST-NAME', type: String, length: 10 }
+  - { name: 'LAST-NAME', type: String, length: 20 }
+  - { name: 'EMAIL', type: String, length: 40 }
+- id: 'CUST_RES' 
+  name: Customer creation response
+  values:
+  - { name: 'CUST-ID', type: String, length: 10 }
+  - { name: 'MSG', type: String, length: 80 }

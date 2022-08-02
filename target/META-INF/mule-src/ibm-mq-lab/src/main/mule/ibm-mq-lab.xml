@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ibm-mq="http://www.mulesoft.org/schema/mule/ibm-mq"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ibm-mq http://www.mulesoft.org/schema/mule/ibm-mq/current/mule-ibm-mq.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<configuration-properties doc:name="Configuration properties" doc:id="d7bf75cb-3ff7-402c-8754-799942b99cd2" file="config.yaml" />
+	<ibm-mq:config name="IBM_MQ_Config" doc:name="IBM MQ Config" doc:id="8980a5bb-cd11-4a98-a4f9-a9cdbc29fe35" >
+		<ibm-mq:connection username="${ibm_mq.username}">
+			<ibm-mq:connection-mode >
+				<ibm-mq:client host="${ibm_mq.host}" port="${ibm_mq.port}" queueManager="${ibm_mq.queue_manager}" channel="${ibm_mq.channel}" />
+			</ibm-mq:connection-mode>
+		</ibm-mq:connection>
+	</ibm-mq:config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="0edee6de-d238-4749-be1a-6f805d564614" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="topic-publisher" doc:id="a394d5b9-d438-41b0-95e0-e76f5edd352f">
+		<http:listener doc:name="HTTP: POST /topic " doc:id="639ac000-b37e-492e-ad4f-fb1b0d631e5f" config-ref="HTTP_Listener_config" path="/topic" allowedMethods="POST" />
+		<logger level="INFO" doc:name="Message to be published" doc:id="14038d16-97ca-4f81-813a-3544da28dd53" message="Message to be published:  #[payload]" />
+		<ibm-mq:publish doc:name="Publish in Topic" doc:id="e4ce85bd-1691-4f96-b891-f0d6e368f36f" config-ref="IBM_MQ_Config" destination="Test_Topic" destinationType="TOPIC" />
+		<logger level="INFO" doc:name="Check message published" doc:id="5d3d9a51-f2d3-4b17-ae2a-f1797d8cf7e1" message='#["Message published in Topic"]' />
+	</flow>
+	<flow name="on-new-topic-message" doc:id="d9d134bc-03eb-4a96-aef0-b830f90aa900" initialState="started">
+		<ibm-mq:listener doc:name="On New Topic Message" doc:id="8904bec9-c906-434d-80fd-13a02080fa4a" config-ref="IBM_MQ_Config" destination="Test_Topic" ackMode="MANUAL" numberOfConsumers="2">
+			<ibm-mq:consumer-type >
+				<ibm-mq:topic-consumer shared="true" subscriptionName="topicConsumers"/>
+			</ibm-mq:consumer-type>
+		</ibm-mq:listener>
+		<logger level="INFO" doc:name="Check on new message working" doc:id="7f6f4e6c-cf09-429c-9984-a5f0511fc791" message='The on new message is working'/>
+		<ibm-mq:ack doc:name="Ack" doc:id="1288f02e-b731-4e6d-9022-b5101ce37cd3" ackId='#[attributes.ackId]'/>
+		<logger level="INFO" doc:name="Log ACK" doc:id="69f211d1-2f81-44bb-9438-eeee9933afc4" message='#["Ack ID: " ++ attributes.ackId]'/>
+	</flow>
+	<flow name="queue-publisher" doc:id="38112a16-ef09-4757-88fd-684a617d6ec5">
+		<http:listener doc:name="HTTP: POST /queue " doc:id="6bd5db91-97a1-4f13-8a50-438a42524912" config-ref="HTTP_Listener_config" path="/queue" allowedMethods="POST" />
+		<logger level="INFO" doc:name="Message to be published" doc:id="6eb49f79-f14a-4734-8177-9b59ad35db86" message="Message to be published:  #[payload]" />
+		<ibm-mq:publish doc:name="Publish in Queue" doc:id="28b6948f-fdb7-4b9e-95dc-e5428aae6f24" config-ref="IBM_MQ_Config" destination="Test_Queue" />
+		<logger level="INFO" doc:name="Check message published" doc:id="2db76b9e-1c3f-4ef9-b8ab-b6bbe923b05e" message='#["Message published in queue"]' />
+	</flow>
+	<flow name="queue-consumer" doc:id="43581e84-27a2-40bd-949c-36b7c6c8839f">
+		<http:listener doc:name="HTTP: GET /queue" doc:id="8b224db8-f8da-4dbc-95e5-399dbedf54f6" config-ref="HTTP_Listener_config" path="/queue" allowedMethods="GET" />
+		<ibm-mq:consume doc:name="Consume Queue" doc:id="724a468b-0960-42fa-9f65-60464cdcee47" config-ref="IBM_MQ_Config" destination="Test_Queue" maximumWait="30" maximumWaitUnit="SECONDS">
+			<ibm-mq:consumer-type>
+				<ibm-mq:queue-consumer />
+			</ibm-mq:consumer-type>
+		</ibm-mq:consume>
+		<logger level="INFO" doc:name="Check consume queue is working" doc:id="749e99f0-67f3-40b1-a0fb-122ff7f37a8a" message='#["The queue message was consumed"]' />
+	</flow>
+	<flow name="queue-publish-consume" doc:id="3cf483ad-ae79-44c1-8229-65163b402a36" initialState="started">
+		<http:listener doc:name="HTTP: POST /publish_consume" doc:id="155d93bd-4560-4b84-b69a-f9294614abad" config-ref="HTTP_Listener_config" path="/publish_consume" allowedMethods="POST"/>
+		<ee:transform doc:name="JSON to Copybook" doc:id="c5b61f89-68f9-4b68-b343-3bdb8bbec0bd">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/flatfile schemaPath = "schemas/BasicData.ffd", segmentIdent = "CUST_REQ", encoding="cp037", recordTerminator="none"
+---
+[{
+	"FIRST-NAME":  payload.firstName as String,
+	"LAST-NAME": payload.lastName as String,
+	"EMAIL": payload.email as String
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ibm-mq:publish-consume doc:name="Publish consume" doc:id="5a733b8d-cdbe-4ceb-b469-474efa2b1ba2" config-ref="IBM_MQ_Config" destination="Encoding_Queue">
+			<ibm-mq:message >
+				<ibm-mq:reply-to destination="Encoding_Queue_Response" />
+			</ibm-mq:message>
+			<ibm-mq:consume-configuration maximumWait="60" maximumWaitUnit="SECONDS" />
+		</ibm-mq:publish-consume>
+		<set-payload value="#[payload]" doc:name="Set MIME type" doc:id="0dc4c069-5174-4726-8b46-9c9f71955f6a" mimeType='application/flatfile; schemapath="schemas/BasicData.ffd"; segmentident=CUST_RES' encoding="cp037"/>
+		<ee:transform doc:name="Copybook to JSON" doc:id="7743f9b5-1626-4de8-8824-325edde56f2f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Check Publish Consume Working" doc:id="686c1485-113e-45c6-bd67-0ddc842350d6" message="The publish consume is working"/>
+	</flow>
+	<flow name="listener-publish-consume" doc:id="ba138290-985c-4074-a8e9-091569684bfc" initialState="started">
+		<ibm-mq:listener doc:name="On New Queue Message" doc:id="15fe6cfe-2ac1-44cc-9e2b-313aed87b73e" config-ref="IBM_MQ_Config" destination="Encoding_Queue" numberOfConsumers="1">
+			<ibm-mq:consumer-type >
+				<ibm-mq:queue-consumer />
+			</ibm-mq:consumer-type>
+			<ibm-mq:reply-to-response >
+				<ibm-mq:reply-to destination="Encoding_Queue_Response" />
+			</ibm-mq:reply-to-response>
+		</ibm-mq:listener>
+		<logger level="INFO" doc:name="Check Publish Consume Listener Working" doc:id="b2b469f6-c19b-459c-999e-09363fdbb77c" message='#["Publish consume listener is working"]'/>
+		<logger level="INFO" doc:name="COPYBOOK Format" doc:id="9b66fd7f-3ce0-4f6b-aafe-0c9da7336165" message="Copybook format: #[payload]"/>
+		<ee:transform doc:name="Mock Response" doc:id="bddff8ce-7874-4a16-948e-4b52dee175ea" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/flatfile schemaPath = "schemas/BasicData.ffd", segmentIdent = "CUST_RES", encoding="cp037", recordTerminator="none"
+---
+[{
+	"CUST-ID": "1234",
+	"MSG": "OK"
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	
+	</mule>

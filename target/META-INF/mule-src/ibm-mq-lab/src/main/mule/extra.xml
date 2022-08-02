@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ibm-mq="http://www.mulesoft.org/schema/mule/ibm-mq" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ibm-mq http://www.mulesoft.org/schema/mule/ibm-mq/current/mule-ibm-mq.xsd">
+	<flow name="extra-topic-publisher" doc:id="f1020484-c95c-418e-a96e-dcfbdbac0222" >
+		<http:listener doc:name="HTTP: POST /extra_topic" doc:id="a39263cb-4942-43a2-8d59-d06034471814" config-ref="HTTP_Listener_config" path="/extra_topic"/>
+		<ibm-mq:publish doc:name="Publish in Extra Topic" doc:id="767c2905-d919-4664-8c1e-7650e0c5e163" config-ref="IBM_MQ_Config" destination="Extra_Topic" destinationType="TOPIC"/>
+	</flow>
+	<flow name="extra-topic-consumer-1" doc:id="e557f6c3-9db6-4fbf-a7b8-613a69d500e5" >
+		<ibm-mq:listener doc:name="First Extra Topic Listener" doc:id="a473c2fe-cac2-4775-b122-beb3b1d0a76f" config-ref="IBM_MQ_Config" destination="Extra_Topic">
+			<ibm-mq:consumer-type >
+				<ibm-mq:topic-consumer shared="true" subscriptionName="first_extra_topic_consumer"/>
+			</ibm-mq:consumer-type>
+		</ibm-mq:listener>
+		<logger level="INFO" doc:name="First Topic Consumer Message" doc:id="73ec284f-3fc3-48f0-8fd3-40445f0d2c80" message='#["Message consumed by the first topic consumer. "]'/>
+	</flow>
+	<flow name="extra-topic-consumer-2" doc:id="b92b57bb-9a35-45a6-b101-6096b0ee8489" >
+		<ibm-mq:listener doc:name="Second Extra Topic Listener" doc:id="b79a7b9f-88ed-4493-8851-eb7bf62f8f09" config-ref="IBM_MQ_Config" destination="Extra_Topic">
+			<ibm-mq:consumer-type >
+				<ibm-mq:topic-consumer shared="true" subscriptionName="second_extra_topic_consumers"/>
+			</ibm-mq:consumer-type>
+		</ibm-mq:listener>
+		<logger level="INFO" doc:name="Second Topic Consumer Message" doc:id="93fe4c3d-77f0-44f6-ab92-bade90558ede" message='#["Message consumed by the second topic consumer. "]'/>
+	</flow>
+	<flow name="extra-queue-publisher" doc:id="51fc4c69-b180-4071-9d1a-39697d2d3e21" >
+		<http:listener doc:name="HTTP: POST /extra_queue" doc:id="4f3b35f3-5edf-4a0c-993c-a5aa80019a5d" config-ref="HTTP_Listener_config" path="/extra_queue"/>
+		<ibm-mq:publish doc:name="Publish in Extra Queue" doc:id="e8f93f74-eb4c-47d4-b59c-4879e8b4911c" config-ref="IBM_MQ_Config" destination="Extra_Queue"/>
+	</flow>
+	<flow name="extra-queue-consumer-1" doc:id="b3ada2f1-ab32-41dc-93f0-105a32eac3bf" >
+		<ibm-mq:listener doc:name="First Extra Queue Listener" doc:id="6a0987ec-d6e9-4c00-9e30-7049d1afc48d" config-ref="IBM_MQ_Config" destination="Extra_Queue">
+			<ibm-mq:consumer-type >
+				<ibm-mq:queue-consumer />
+			</ibm-mq:consumer-type>
+		</ibm-mq:listener>
+		<logger level="INFO" doc:name="First Consumer Message" doc:id="2a15c57c-1149-4271-bbff-f84c3f3f340b" message='#["Message consumed by the first queue consumer"]'/>
+	</flow>
+	<flow name="extra-queue-consumer-2" doc:id="b1f594db-14a6-4e4c-9811-e0d092fad9f0" >
+		<ibm-mq:listener doc:name="Second Extra Queue Listener" doc:id="1f0111f8-22b5-439e-b3a3-b37dae47c259" config-ref="IBM_MQ_Config" destination="Extra_Queue">
+			<ibm-mq:consumer-type >
+				<ibm-mq:queue-consumer />
+			</ibm-mq:consumer-type>
+		</ibm-mq:listener>
+		<logger level="INFO" doc:name="Second Queue Consumer Message" doc:id="2a9fa47b-b34b-40cc-9937-9b35516f206c" message='#["Message consumed by the second queue consumer"]' />
+	</flow>
+	<flow name="topic-consumer" doc:id="230cf8c5-a971-49aa-be1f-2da3bad772b2" initialState="started">
+		<http:listener doc:name="HTTP: GET /topic" doc:id="ddbae064-59fd-4139-907a-bf57cf99ae13" config-ref="HTTP_Listener_config" path="/topic" allowedMethods="GET" />
+		<ibm-mq:consume doc:name="Consume Topic" doc:id="c9869032-4128-46e3-9775-267f565c6521" config-ref="IBM_MQ_Config" destination="Test_Topic" maximumWait="30" maximumWaitUnit="SECONDS">
+			<ibm-mq:consumer-type>
+				<ibm-mq:topic-consumer subscriptionName="first_consumer" shared="true" />
+			</ibm-mq:consumer-type>
+		</ibm-mq:consume>
+		<logger level="INFO" doc:name="Check message consumed" doc:id="c7ef589d-73f1-4207-acc1-3d8136e9252b" message="Message consumed" />
+	</flow>
+</mule>
